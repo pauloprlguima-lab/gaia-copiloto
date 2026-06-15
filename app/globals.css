@@ -453,6 +453,34 @@ button {
   white-space: pre-wrap;
 }
 
+.userMessage > span {
+  display: block;
+}
+
+.messageAttachments {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  margin-top: 10px;
+}
+
+.messageAttachments small {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  max-width: 220px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 999px;
+  padding: 5px 8px;
+  background: rgba(255, 255, 255, 0.08);
+  overflow: hidden;
+  color: #eef1ed;
+  font-size: 11px;
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .agentDocument {
   overflow: hidden;
   align-self: stretch;
@@ -547,6 +575,83 @@ button {
   display: flex;
   align-items: flex-end;
   gap: 10px;
+}
+
+.fileInput {
+  display: none;
+}
+
+.attachButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  width: 54px;
+  height: 54px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fff;
+  color: var(--text);
+  transition: border-color 150ms ease, color 150ms ease, opacity 150ms ease;
+}
+
+.attachButton:hover:not(:disabled) {
+  border-color: var(--brass);
+  color: var(--brass);
+}
+
+.attachButton:disabled {
+  cursor: not-allowed;
+  opacity: 0.46;
+}
+
+.attachmentTray {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.attachmentChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  max-width: min(100%, 360px);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 7px 8px 7px 10px;
+  background: #fff;
+  color: var(--text);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.attachmentChip span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.attachmentChip small {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.attachmentChip button {
+  display: inline-grid;
+  width: 24px;
+  height: 24px;
+  place-items: center;
+  border: 0;
+  border-radius: 999px;
+  background: var(--surface-2);
+  color: var(--muted);
+}
+
+.attachmentChip button:hover {
+  background: var(--danger-bg);
+  color: var(--danger);
 }
 
 .input {
@@ -764,6 +869,10 @@ button {
   }
 
   .sendButton {
+    width: 100%;
+  }
+
+  .attachButton {
     width: 100%;
   }
 

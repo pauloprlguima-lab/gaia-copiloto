@@ -1,8 +1,18 @@
 export type AgentId = "gaia" | "radar" | "voz" | "memoria";
 
+export type GaiaAttachment = {
+  name: string;
+  type: string;
+  size: number;
+  kind: "image" | "file" | "text";
+  dataUrl?: string;
+  text?: string;
+};
+
 export type GaiaMessage = {
   role: "user" | "assistant";
   content: string;
+  attachments?: GaiaAttachment[];
 };
 
 export type GaiaAgent = {

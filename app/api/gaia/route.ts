@@ -2,6 +2,57 @@ import OpenAI from "openai";
 import { NextResponse } from "next/server";
 import { getAgent, type GaiaMessage } from "@/lib/agents";
 
+function messageHasContent(message: GaiaMessage) {
+  return Boolean(message.content?.trim() || message.attachments?.length);
+}
+
+function toOpenAIInput(message: GaiaMessage) {
+  if (message.role === "assistant") {
+    return {
+      role: "assistant",
+      content: message.content,
+    };
+  }
+
+  const content: Array<Record<string, string>> = [];
+
+  if (message.content?.trim()) {
+    content.push({ type: "input_text", text: message.content });
+  }
+
+  for (const attachment of message.attachments ?? []) {
+    if (attachment.kind === "image" && attachment.dataUrl) {
+      content.push({ type: "input_image", image_url: attachment.dataUrl });
+      continue;
+    }
+
+    if (attachment.kind === "text" && attachment.text) {
+      content.push({
+        type: "input_text",
+        text: `\n\n[Anexo: ${attachment.name} | ${attachment.type || "texto"}]\n${attachment.text}`,
+      });
+      continue;
+    }
+
+    if (attachment.dataUrl) {
+      content.push({
+        type: "input_file",
+        filename: attachment.name,
+        file_data: attachment.dataUrl,
+      });
+    }
+  }
+
+  if (content.length === 0) {
+    content.push({ type: "input_text", text: "Analise o anexo enviado." });
+  }
+
+  return {
+    role: "user",
+    content,
+  };
+}
+
 export async function POST(request: Request) {
   try {
     const apiKey = process.env.OPENAI_API_KEY;
@@ -25,7 +76,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Agente GAIA não encontrado." }, { status: 400 });
     }
 
-    if (messages.length === 0 || messages.some((message) => !message.content?.trim())) {
+    if (messages.length === 0 || messages.some((message) => !messageHasContent(message))) {
       return NextResponse.json({ error: "Envie pelo menos uma mensagem válida." }, { status: 400 });
     }
 
@@ -34,10 +85,7 @@ export async function POST(request: Request) {
     const response = await client.responses.create({
       model: process.env.OPENAI_MODEL || "gpt-5.5",
       instructions: agent.system,
-      input: messages.map((message) => ({
-        role: message.role,
-        content: message.content,
-      })),
+      input: messages.map(toOpenAIInput) as never,
       max_output_tokens: 1200,
     });
 

@@ -1,10 +1,12 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { ArrowLeft, Brain, ClipboardCopy, FileText, MessageSquareText, Radar, Send, Sparkles } from "lucide-react";
-import { agents, type AgentId, type GaiaMessage } from "@/lib/agents";
+import { ArrowLeft, Brain, ClipboardCopy, FileText, MessageSquareText, Paperclip, Radar, Send, Sparkles, X } from "lucide-react";
+import { agents, type AgentId, type GaiaAttachment, type GaiaMessage } from "@/lib/agents";
 
 type ConversationMap = Partial<Record<AgentId, GaiaMessage[]>>;
+const MAX_ATTACHMENTS = 4;
+const MAX_ATTACHMENT_SIZE = 8 * 1024 * 1024;
 
 const iconMap = {
   gaia: Sparkles,
@@ -57,10 +59,12 @@ export default function GaiaCopiloto() {
   const [activeAgentId, setActiveAgentId] = useState<AgentId | null>(null);
   const [conversations, setConversations] = useState<ConversationMap>({});
   const [input, setInput] = useState("");
+  const [attachments, setAttachments] = useState<GaiaAttachment[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
   const streamRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const agent = useMemo(
     () => agents.find((item) => item.id === activeAgentId) ?? agents[0],
@@ -79,12 +83,14 @@ export default function GaiaCopiloto() {
   function openAgent(nextAgentId: AgentId) {
     setActiveAgentId(nextAgentId);
     setInput("");
+    setAttachments([]);
     setError(null);
   }
 
   function backToAgents() {
     setActiveAgentId(null);
     setInput("");
+    setAttachments([]);
     setError(null);
   }
 
@@ -101,12 +107,21 @@ export default function GaiaCopiloto() {
     if (!activeAgentId) return;
 
     const text = (optionalText ?? input).trim();
-    if (!text || loading) return;
+    const filesToSend = attachments;
+    if ((!text && filesToSend.length === 0) || loading) return;
 
-    const nextMessages: GaiaMessage[] = [...messages, { role: "user", content: text }];
+    const nextMessages: GaiaMessage[] = [
+      ...messages,
+      {
+        role: "user",
+        content: text || "Analise o(s) anexo(s) enviado(s) e me devolva uma leitura prática pelo método GAIA.",
+        attachments: filesToSend.length ? filesToSend : undefined,
+      },
+    ];
 
     setError(null);
     setInput("");
+    setAttachments([]);
     setLoading(true);
     setConversations((current) => ({ ...current, [agent.id]: nextMessages }));
 
@@ -146,6 +161,94 @@ export default function GaiaCopiloto() {
       event.preventDefault();
       void sendMessage();
     }
+  }
+
+  function formatBytes(bytes: number) {
+    if (bytes < 1024 * 1024) return `${Math.max(1, Math.round(bytes / 1024))} KB`;
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  }
+
+  function readFile(file: File, mode: "text" | "dataUrl") {
+    return new Promise<string>((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onerror = () => reject(new Error(`Não consegui ler ${file.name}.`));
+      reader.onload = () => resolve(String(reader.result ?? ""));
+
+      if (mode === "text") {
+        reader.readAsText(file);
+      } else {
+        reader.readAsDataURL(file);
+      }
+    });
+  }
+
+  async function handleAttachmentChange(fileList: FileList | null) {
+    if (!fileList) return;
+
+    const availableSlots = MAX_ATTACHMENTS - attachments.length;
+    const selectedFiles = Array.from(fileList).slice(0, availableSlots);
+
+    if (selectedFiles.length === 0) {
+      setError(`Use no máximo ${MAX_ATTACHMENTS} anexos por mensagem.`);
+      return;
+    }
+
+    try {
+      const nextAttachments = await Promise.all(
+        selectedFiles.map(async (file) => {
+          if (file.size > MAX_ATTACHMENT_SIZE) {
+            throw new Error(`${file.name} passou de 8 MB. Envie um arquivo menor.`);
+          }
+
+          const isTextLike =
+            file.type.startsWith("text/") ||
+            file.name.toLowerCase().endsWith(".csv") ||
+            file.name.toLowerCase().endsWith(".json") ||
+            file.name.toLowerCase().endsWith(".md");
+
+          if (file.type.startsWith("image/")) {
+            return {
+              name: file.name,
+              type: file.type,
+              size: file.size,
+              kind: "image" as const,
+              dataUrl: await readFile(file, "dataUrl"),
+            };
+          }
+
+          if (isTextLike) {
+            return {
+              name: file.name,
+              type: file.type || "text/plain",
+              size: file.size,
+              kind: "text" as const,
+              text: await readFile(file, "text"),
+            };
+          }
+
+          return {
+            name: file.name,
+            type: file.type || "application/octet-stream",
+            size: file.size,
+            kind: "file" as const,
+            dataUrl: await readFile(file, "dataUrl"),
+          };
+        }),
+      );
+
+      setAttachments((current) => [...current, ...nextAttachments]);
+      setError(null);
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : "Não consegui anexar esse arquivo.");
+    } finally {
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
+    }
+  }
+
+  function removeAttachment(index: number) {
+    setAttachments((current) => current.filter((_, currentIndex) => currentIndex !== index));
   }
 
   function returnToOpening() {
@@ -301,7 +404,19 @@ export default function GaiaCopiloto() {
 
           {messages.map((message, index) =>
             message.role === "user" ? (
-              <div className="userMessage" key={`${message.role}-${index}`}>{message.content}</div>
+              <div className="userMessage" key={`${message.role}-${index}`}>
+                <span>{message.content}</span>
+                {message.attachments?.length ? (
+                  <div className="messageAttachments">
+                    {message.attachments.map((attachment) => (
+                      <small key={`${attachment.name}-${attachment.size}`}>
+                        <Paperclip size={13} />
+                        {attachment.name}
+                      </small>
+                    ))}
+                  </div>
+                ) : null}
+              </div>
             ) : (
               <article className="agentDocument" key={`${message.role}-${index}`}>
                 <div className="documentHeader">
@@ -328,7 +443,38 @@ export default function GaiaCopiloto() {
         </div>
 
         <footer className="composer focusedComposer">
+          {attachments.length ? (
+            <div className="attachmentTray" aria-label="Arquivos anexados">
+              {attachments.map((attachment, index) => (
+                <div className="attachmentChip" key={`${attachment.name}-${attachment.size}`}>
+                  <Paperclip size={14} />
+                  <span>{attachment.name}</span>
+                  <small>{formatBytes(attachment.size)}</small>
+                  <button aria-label={`Remover ${attachment.name}`} onClick={() => removeAttachment(index)} type="button">
+                    <X size={14} />
+                  </button>
+                </div>
+              ))}
+            </div>
+          ) : null}
           <div className="inputWrap">
+            <input
+              accept="image/*,.pdf,.txt,.csv,.json,.md,.xlsx,.xls,.doc,.docx"
+              className="fileInput"
+              multiple
+              onChange={(event) => void handleAttachmentChange(event.target.files)}
+              ref={fileInputRef}
+              type="file"
+            />
+            <button
+              aria-label="Anexar arquivo"
+              className="attachButton"
+              disabled={loading || attachments.length >= MAX_ATTACHMENTS}
+              onClick={() => fileInputRef.current?.click()}
+              type="button"
+            >
+              <Paperclip aria-hidden="true" size={18} />
+            </button>
             <textarea
               aria-label={`Mensagem para ${agent.name}`}
               className="input"
@@ -338,12 +484,12 @@ export default function GaiaCopiloto() {
               rows={2}
               value={input}
             />
-            <button className="sendButton" disabled={loading || !input.trim()} onClick={() => void sendMessage()} type="button">
+            <button className="sendButton" disabled={loading || (!input.trim() && attachments.length === 0)} onClick={() => void sendMessage()} type="button">
               <Send aria-hidden="true" size={18} />
               Enviar
             </button>
           </div>
-          <p>Ctrl/Cmd + Enter envia. Dado sensível só em ambiente aprovado ou IA local.</p>
+          <p>Ctrl/Cmd + Enter envia. Anexe imagem, PDF, CSV, texto ou planilha pequena. Dado sensível só em ambiente aprovado ou IA local.</p>
         </footer>
       </section>
     </main>
