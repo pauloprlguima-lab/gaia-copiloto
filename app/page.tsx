@@ -148,6 +148,12 @@ export default function GaiaCopiloto() {
     }
   }
 
+  function returnToOpening() {
+    setOnboardingIndex(0);
+    setHasEntered(false);
+    setActiveAgentId(null);
+  }
+
   if (!hasEntered) {
     return (
       <main className="welcomeShell">
@@ -194,6 +200,10 @@ export default function GaiaCopiloto() {
         <header className="hubHeader">
           <img src="/images/gaia-logo-transparent.png" alt="GAIA - Gerente Adjunto de Inteligência Artificial" />
           <div>
+            <button className="hubBackButton" onClick={returnToOpening} type="button">
+              <ArrowLeft size={16} />
+              Voltar para abertura
+            </button>
             <p className="eyebrow">Escolha seu agente</p>
             <h1>Qual parte do trabalho você quer resolver agora?</h1>
             <span>Cada agente abre uma conversa própria, com comandos prontos para o gerente sair com uma entrega utilizável.</span>
@@ -203,13 +213,11 @@ export default function GaiaCopiloto() {
         <section className="agentCards" aria-label="Agentes GAIA">
           {agents.map((item) => {
             const Icon = iconMap[item.id];
-            const historyCount = conversations[item.id]?.length ?? 0;
 
             return (
               <article className="agentCard" key={item.id}>
                 <div className="agentCardImage">
                   <img src={item.image} alt={`Imagem do agente ${item.name}`} />
-                  <span>{historyCount > 0 ? "Conversa iniciada" : "Nova conversa"}</span>
                 </div>
                 <div className="agentCardTitle">
                   <div className="agentCardIcon"><Icon aria-hidden="true" size={22} /></div>

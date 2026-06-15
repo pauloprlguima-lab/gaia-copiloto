@@ -869,6 +869,26 @@ button {
   line-height: 1.6;
 }
 
+.hubBackButton {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  width: fit-content;
+  margin: 0 0 14px;
+  border: 1px solid rgba(204, 159, 70, 0.36);
+  border-radius: 8px;
+  padding: 8px 11px;
+  background: rgba(7, 17, 15, 0.42);
+  color: #edf0eb;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.hubBackButton:hover {
+  border-color: rgba(204, 159, 70, 0.68);
+  background: rgba(204, 159, 70, 0.16);
+}
+
 .agentCards {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -912,20 +932,6 @@ button {
   inset: 0;
   background: linear-gradient(180deg, rgba(7, 17, 15, 0) 38%, rgba(7, 17, 15, 0.78) 100%);
   content: "";
-}
-
-.agentCardImage span {
-  position: absolute;
-  right: 12px;
-  bottom: 12px;
-  z-index: 1;
-  border: 1px solid rgba(255, 255, 255, 0.18);
-  border-radius: 999px;
-  padding: 6px 9px;
-  background: rgba(7, 17, 15, 0.72);
-  color: #edf0eb;
-  font-size: 11px;
-  font-weight: 800;
 }
 
 .agentCardTitle {
