@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { ArrowLeft, Brain, ClipboardCopy, FileText, MessageSquareText, Paperclip, Radar, Send, Sparkles, X } from "lucide-react";
 import { agents, type AgentId, type GaiaAttachment, type GaiaMessage } from "@/lib/agents";
+import { hasSensitiveDataSignal, sensitiveDataWarning } from "@/lib/gaiaKnowledge";
 
 type ConversationMap = Partial<Record<AgentId, GaiaMessage[]>>;
 const MAX_ATTACHMENTS = 4;
@@ -110,6 +111,13 @@ export default function GaiaCopiloto() {
     const filesToSend = attachments;
     if ((!text && filesToSend.length === 0) || loading) return;
 
+    const sensitiveSignal = hasSensitiveDataSignal(
+      [
+        text,
+        ...filesToSend.map((attachment) => `${attachment.name} ${attachment.type} ${attachment.text ?? ""}`),
+      ].join("\n"),
+    );
+
     const nextMessages: GaiaMessage[] = [
       ...messages,
       {
@@ -122,8 +130,17 @@ export default function GaiaCopiloto() {
     setError(null);
     setInput("");
     setAttachments([]);
-    setLoading(true);
     setConversations((current) => ({ ...current, [agent.id]: nextMessages }));
+
+    if (sensitiveSignal) {
+      setConversations((current) => ({
+        ...current,
+        [agent.id]: [...nextMessages, { role: "assistant", content: sensitiveDataWarning }],
+      }));
+      return;
+    }
+
+    setLoading(true);
 
     try {
       const response = await fetch("/api/gaia", {
@@ -489,7 +506,7 @@ export default function GaiaCopiloto() {
               Enviar
             </button>
           </div>
-          <p>Ctrl/Cmd + Enter envia. Anexe imagem, PDF, CSV, texto ou planilha pequena. Dado sensível só em ambiente aprovado ou IA local.</p>
+          <p>Ctrl/Cmd + Enter envia. Anexe apenas dado público. Kit banco, balanço, carteira, contratos e valores ficam bloqueados até termos IA Local ou ambiente aprovado.</p>
         </footer>
       </section>
     </main>

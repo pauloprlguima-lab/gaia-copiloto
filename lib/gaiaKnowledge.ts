@@ -139,3 +139,82 @@ PROTOCOLO GAIA GERAL:
 - Se o gerente precisar decidir, entregue uma recomendacao pratica, com cuidado de risco e proximo passo.
 - Se houver anexo, primeiro classifique se e dado publico ou sensivel. Depois oriente a analise.
 `.trim();
+
+export const sensitiveDataWarning = `
+⚠️ Trava LGPD do Método GAIA
+
+Não vou analisar esse conteúdo neste ambiente de nuvem.
+
+O material parece envolver dado sensível: kit banco, balanço, DRE, faturamento, carteira, contrato, proposta com valores, documentos financeiros ou informação interna de cedente/sacado.
+
+Pelo Método GAIA, isso só deve ser tratado em IA Local ou ambiente aprovado pela instituição.
+
+O que posso fazer agora:
+1. Te ajudar a montar um checklist seguro do que verificar.
+2. Criar um modelo de parecer sem usar os dados reais.
+3. Orientar como preparar esse material para análise em IA Local.
+
+DADOS sensíveis ficam protegidos. CAMPO continua com o gerente.
+`.trim();
+
+export const sensitiveDataTerms = [
+  "kit banco",
+  "balanco",
+  "balanço",
+  "dre",
+  "demonstração de resultado",
+  "demonstracao de resultado",
+  "faturamento",
+  "extrato bancario",
+  "extrato bancário",
+  "imposto de renda",
+  "contrato social",
+  "contrato",
+  "proposta com valores",
+  "limite aprovado",
+  "limite de credito",
+  "limite de crédito",
+  "carteira",
+  "sacado",
+  "sacados",
+  "duplicata",
+  "duplicatas",
+  "nota fiscal",
+  "notas fiscais",
+  "bordero",
+  "borderô",
+  "cnpj",
+  "cpf",
+  "rg",
+  "endividamento",
+  "inadimplencia",
+  "inadimplência",
+  "serasa",
+  "restricao",
+  "restrição",
+  "receita bruta",
+  "lucro liquido",
+  "lucro líquido",
+  "ebitda",
+  "dívida",
+  "divida",
+  "balancete",
+  "relatorio financeiro",
+  "relatório financeiro",
+];
+
+export function hasSensitiveDataSignal(value: string) {
+  const normalized = value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase();
+
+  return sensitiveDataTerms.some((term) => {
+    const normalizedTerm = term
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toLowerCase();
+
+    return normalized.includes(normalizedTerm);
+  });
+}

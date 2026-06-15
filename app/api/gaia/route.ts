@@ -1,6 +1,7 @@
 import OpenAI from "openai";
 import { NextResponse } from "next/server";
 import { getAgent, type GaiaMessage } from "@/lib/agents";
+import { hasSensitiveDataSignal, sensitiveDataWarning } from "@/lib/gaiaKnowledge";
 
 function messageHasContent(message: GaiaMessage) {
   return Boolean(message.content?.trim() || message.attachments?.length);
@@ -53,6 +54,14 @@ function toOpenAIInput(message: GaiaMessage) {
   };
 }
 
+function messageSensitiveText(message: GaiaMessage) {
+  const attachmentText = (message.attachments ?? [])
+    .map((attachment) => `${attachment.name} ${attachment.type} ${attachment.text ?? ""}`)
+    .join("\n");
+
+  return `${message.content ?? ""}\n${attachmentText}`;
+}
+
 export async function POST(request: Request) {
   try {
     const apiKey = process.env.OPENAI_API_KEY;
@@ -78,6 +87,14 @@ export async function POST(request: Request) {
 
     if (messages.length === 0 || messages.some((message) => !messageHasContent(message))) {
       return NextResponse.json({ error: "Envie pelo menos uma mensagem válida." }, { status: 400 });
+    }
+
+    const hasSensitiveData = messages
+      .filter((message) => message.role === "user")
+      .some((message) => hasSensitiveDataSignal(messageSensitiveText(message)));
+
+    if (hasSensitiveData) {
+      return NextResponse.json({ text: sensitiveDataWarning, blocked: true });
     }
 
     const client = new OpenAI({ apiKey });
