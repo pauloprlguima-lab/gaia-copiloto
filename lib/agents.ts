@@ -1,3 +1,13 @@
+import {
+  agentRouting,
+  gaiaGeneralPlaybook,
+  gaiaMethodCore,
+  memoriaPlaybook,
+  radarPlaybook,
+  responseContract,
+  vozPlaybook,
+} from "./gaiaKnowledge";
+
 export type AgentId = "gaia" | "radar" | "voz" | "memoria";
 
 export type GaiaAttachment = {
@@ -39,6 +49,16 @@ REGRAS PERMANENTES DO MÉTODO GAIA:
 - Nunca invente CNPJ, faturamento, sócios, datas, taxas, números ou fatos. Quando faltar dado, marque como "a confirmar".
 `.trim();
 
+const methodBrain = `
+${gaiaMethodCore}
+
+${agentRouting}
+
+${responseContract}
+
+${sharedRules}
+`.trim();
+
 export const agents: GaiaAgent[] = [
   {
     id: "gaia",
@@ -74,7 +94,9 @@ FORMATO IDEAL:
 3. Próximo passo recomendado.
 4. Quando fizer sentido, entregue um texto, checklist ou roteiro pronto para uso.
 
-${sharedRules}`,
+${methodBrain}
+
+${gaiaGeneralPlaybook}`,
   },
   {
     id: "radar",
@@ -103,7 +125,9 @@ ESTRUTURA OBRIGATÓRIA:
 - Sinais de risco a observar.
 - Pendências a confirmar.
 
-${sharedRules}`,
+${methodBrain}
+
+${radarPlaybook}`,
   },
   {
     id: "voz",
@@ -145,7 +169,9 @@ REGRAS ESPECÍFICAS:
 - Priorize conversa consultiva: entender operação, prazo de recebimento, concentração de sacados, recorrência e dor de caixa.
 - Evite frases genéricas como "soluções personalizadas" se puder ser mais concreto.
 
-${sharedRules}`,
+${methodBrain}
+
+${vozPlaybook}`,
   },
   {
     id: "memoria",
@@ -174,7 +200,9 @@ ESTRUTURE SEMPRE ASSIM:
 - Observações de risco
 - Pendências a confirmar
 
-${sharedRules}`,
+${methodBrain}
+
+${memoriaPlaybook}`,
   },
 ];
 
