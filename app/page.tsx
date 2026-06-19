@@ -2,6 +2,8 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { ArrowLeft, Brain, ClipboardCopy, FileText, MessageSquareText, Paperclip, Radar, Send, Sparkles, X } from "lucide-react";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import { agents, type AgentId, type GaiaAttachment, type GaiaMessage } from "@/lib/agents";
 import { hasSensitiveDataSignal, sensitiveDataWarning } from "@/lib/gaiaKnowledge";
 
@@ -443,7 +445,20 @@ export default function GaiaCopiloto() {
                     {copiedIndex === index ? "Copiado" : "Copiar"}
                   </button>
                 </div>
-                <div className="documentBody">{message.content}</div>
+                <div className="documentBody">
+                  <ReactMarkdown
+                    remarkPlugins={[remarkGfm]}
+                    components={{
+                      table: ({ children }) => (
+                        <div className="documentTable">
+                          <table>{children}</table>
+                        </div>
+                      ),
+                    }}
+                  >
+                    {message.content}
+                  </ReactMarkdown>
+                </div>
               </article>
             ),
           )}

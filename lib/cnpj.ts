@@ -56,6 +56,19 @@ function asText(value: unknown): string | null {
   return typeof value === "string" && value.trim() ? value.trim() : null;
 }
 
+function asNumber(value: unknown): number | null {
+  if (typeof value === "number") return Number.isFinite(value) ? value : null;
+  if (typeof value !== "string" || !value.trim()) return null;
+
+  const compact = value.trim().replace(/[^\d,.-]/g, "");
+  const normalized = compact.includes(",")
+    ? compact.replace(/\./g, "").replace(",", ".")
+    : compact;
+  const parsed = Number(normalized);
+
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
 function description(value: unknown): string | null {
   return asText(asRecord(value).descricao);
 }
@@ -161,7 +174,7 @@ export async function consultPublicCompany(cnpj: string): Promise<EmpresaPublica
     dataInicioAtividade: asText(establishment.data_inicio_atividade),
     porte: description(raw.porte),
     naturezaJuridica: description(raw.natureza_juridica),
-    capitalSocial: typeof raw.capital_social === "number" ? raw.capital_social : null,
+    capitalSocial: asNumber(raw.capital_social),
     atividadePrincipal: asText(primaryActivity.descricao),
     atividadesSecundarias: secondaryActivities
       .map((item) => description(item))

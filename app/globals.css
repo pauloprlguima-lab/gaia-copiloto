@@ -530,7 +530,104 @@ button {
   padding: 20px 22px 23px;
   font-size: 14px;
   line-height: 1.7;
-  white-space: pre-wrap;
+}
+
+.documentBody > :first-child {
+  margin-top: 0;
+}
+
+.documentBody > :last-child {
+  margin-bottom: 0;
+}
+
+.documentBody p,
+.documentBody ul,
+.documentBody ol,
+.documentBody blockquote {
+  margin: 0 0 14px;
+}
+
+.documentBody h1,
+.documentBody h2,
+.documentBody h3,
+.documentBody h4 {
+  margin: 22px 0 10px;
+  line-height: 1.35;
+  letter-spacing: 0;
+}
+
+.documentBody h1 {
+  font-size: 21px;
+}
+
+.documentBody h2 {
+  font-size: 18px;
+}
+
+.documentBody h3,
+.documentBody h4 {
+  font-size: 15px;
+}
+
+.documentBody ul,
+.documentBody ol {
+  padding-left: 22px;
+}
+
+.documentBody li + li {
+  margin-top: 5px;
+}
+
+.documentBody hr {
+  margin: 20px 0;
+  border: 0;
+  border-top: 1px solid var(--line);
+}
+
+.documentBody blockquote {
+  padding: 2px 0 2px 14px;
+  border-left: 3px solid var(--brass);
+  color: var(--muted);
+}
+
+.documentBody code {
+  padding: 2px 5px;
+  border-radius: 4px;
+  background: #f2eee6;
+  font-size: 0.92em;
+}
+
+.documentTable {
+  width: 100%;
+  margin: 12px 0 18px;
+  overflow-x: auto;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+}
+
+.documentTable table {
+  width: 100%;
+  min-width: 520px;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.documentTable th,
+.documentTable td {
+  padding: 9px 11px;
+  border-bottom: 1px solid var(--line);
+  text-align: left;
+  vertical-align: top;
+}
+
+.documentTable th {
+  background: #f6f2ea;
+  color: var(--ink);
+  font-weight: 700;
+}
+
+.documentTable tr:last-child td {
+  border-bottom: 0;
 }
 
 .thinking {
