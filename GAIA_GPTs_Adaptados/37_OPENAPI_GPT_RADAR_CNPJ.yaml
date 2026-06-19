@@ -4,7 +4,7 @@ info:
   version: 1.0.0
   description: Consulta dados cadastrais públicos de uma empresa brasileira pelo CNPJ.
 servers:
-  - url: https://SUBSTITUIR-PELO-DOMINIO-VERCEL
+  - url: https://gaia-radar-api.vercel.app
 paths:
   /api/empresa/consultar:
     post:
