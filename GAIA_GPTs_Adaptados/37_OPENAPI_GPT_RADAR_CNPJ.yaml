@@ -1,0 +1,137 @@
+openapi: 3.1.0
+info:
+  title: GAIA Radar - Consulta Pública de CNPJ
+  version: 1.0.0
+  description: Consulta dados cadastrais públicos de uma empresa brasileira pelo CNPJ.
+servers:
+  - url: https://SUBSTITUIR-PELO-DOMINIO-VERCEL
+paths:
+  /api/empresa/consultar:
+    post:
+      operationId: consultarEmpresaPorCnpj
+      summary: Consulta uma empresa brasileira pelo CNPJ.
+      description: Use quando o usuário fornecer um CNPJ e pedir pesquisa, qualificação ou dossiê comercial.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              properties:
+                cnpj:
+                  type: string
+                  description: CNPJ com ou sem pontuação.
+              required:
+                - cnpj
+      responses:
+        "200":
+          description: Dados cadastrais públicos normalizados.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EmpresaPublica"
+        "400":
+          description: CNPJ inválido.
+        "401":
+          description: Chave da Ação ausente ou inválida.
+        "404":
+          description: CNPJ não encontrado.
+        "429":
+          description: Limite temporário da fonte pública atingido.
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+  schemas:
+    EmpresaPublica:
+      type: object
+      additionalProperties: false
+      properties:
+        cnpj:
+          type: string
+        razaoSocial:
+          type: string
+        nomeFantasia:
+          type: [string, "null"]
+        situacaoCadastral:
+          type: string
+        dataSituacaoCadastral:
+          type: [string, "null"]
+        dataInicioAtividade:
+          type: [string, "null"]
+        porte:
+          type: [string, "null"]
+        naturezaJuridica:
+          type: [string, "null"]
+        capitalSocial:
+          type: [number, "null"]
+        atividadePrincipal:
+          type: [string, "null"]
+        atividadesSecundarias:
+          type: array
+          items:
+            type: string
+        endereco:
+          type: object
+          additionalProperties: false
+          properties:
+            logradouro:
+              type: [string, "null"]
+            bairro:
+              type: [string, "null"]
+            cidade:
+              type: [string, "null"]
+            estado:
+              type: [string, "null"]
+            cep:
+              type: [string, "null"]
+        canaisOficiais:
+          type: object
+          additionalProperties: false
+          properties:
+            telefones:
+              type: array
+              items:
+                type: string
+            email:
+              type: [string, "null"]
+        socios:
+          type: array
+          items:
+            type: object
+            additionalProperties: false
+            properties:
+              nome:
+                type: string
+              tipo:
+                type: [string, "null"]
+              qualificacao:
+                type: [string, "null"]
+        fonte:
+          type: object
+          additionalProperties: false
+          properties:
+            nome:
+              type: string
+            url:
+              type: string
+            consultadoEm:
+              type: string
+            atualizadoEm:
+              type: [string, "null"]
+        aviso:
+          type: string
+      required:
+        - cnpj
+        - razaoSocial
+        - situacaoCadastral
+        - atividadesSecundarias
+        - endereco
+        - canaisOficiais
+        - socios
+        - fonte
+        - aviso

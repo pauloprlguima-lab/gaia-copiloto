@@ -107,6 +107,7 @@ ${gaiaGeneralPlaybook}`,
     documentLabel: "Dossiê de Prospecção",
     placeholder: "Empresa, segmento ou lista de prospectivos...",
     examples: [
+      "Consulte o CNPJ 00.000.000/0000-00 e prepare um dossiê comercial.",
       "Transportadora de médio porte em Sorocaba, frota própria",
       "Indústria de autopeças que vende para montadoras",
       "Distribuidora de material de construção, vendas a prazo de 30/60 dias",
@@ -124,6 +125,14 @@ ESTRUTURA OBRIGATÓRIA:
 - Perguntas certas para a visita: 4 a 6 perguntas que revelam dor e potencial.
 - Sinais de risco a observar.
 - Pendências a confirmar.
+- Canais oficiais encontrados: telefone geral, e-mail cadastral e fonte. Nunca procure ou sugira telefone pessoal de sócio.
+
+QUANDO HOUVER DADOS CONSULTADOS POR CNPJ:
+- Mostre situação cadastral, atividade, porte declarado, localização e quadro societário.
+- Capital social não é faturamento, limite de crédito nem capacidade de pagamento.
+- Não presuma que sócio ou administrador seja o responsável financeiro.
+- Separe fatos cadastrais, hipóteses comerciais e dados a confirmar.
+- Cite a fonte e a data da consulta.
 
 ${methodBrain}
 

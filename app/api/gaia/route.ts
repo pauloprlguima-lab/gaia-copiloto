@@ -1,6 +1,7 @@
 import OpenAI from "openai";
 import { NextResponse } from "next/server";
 import { getAgent, type GaiaMessage } from "@/lib/agents";
+import { companyDataForPrompt, consultPublicCompany, extractCnpj } from "@/lib/cnpj";
 import { hasSensitiveDataSignal, sensitiveDataWarning } from "@/lib/gaiaKnowledge";
 
 function messageHasContent(message: GaiaMessage) {
@@ -99,10 +100,22 @@ export async function POST(request: Request) {
 
     const client = new OpenAI({ apiKey });
 
+    const input = messages.map(toOpenAIInput) as Array<Record<string, unknown>>;
+    const latestUserMessage = [...messages].reverse().find((message) => message.role === "user");
+    const cnpj = agent.id === "radar" ? extractCnpj(latestUserMessage?.content ?? "") : null;
+
+    if (cnpj) {
+      const company = await consultPublicCompany(cnpj);
+      input.push({
+        role: "user",
+        content: [{ type: "input_text", text: companyDataForPrompt(company) }],
+      });
+    }
+
     const response = await client.responses.create({
       model: process.env.OPENAI_MODEL || "gpt-5.5",
       instructions: agent.system,
-      input: messages.map(toOpenAIInput) as never,
+      input: input as never,
       max_output_tokens: 1200,
     });
 

@@ -183,7 +183,6 @@ export const sensitiveDataTerms = [
   "notas fiscais",
   "bordero",
   "borderô",
-  "cnpj",
   "cpf",
   "rg",
   "endividamento",
@@ -214,6 +213,10 @@ export function hasSensitiveDataSignal(value: string) {
       .normalize("NFD")
       .replace(/[\u0300-\u036f]/g, "")
       .toLowerCase();
+
+    if (normalizedTerm.length <= 3) {
+      return new RegExp(`\\b${normalizedTerm}\\b`).test(normalized);
+    }
 
     return normalized.includes(normalizedTerm);
   });
