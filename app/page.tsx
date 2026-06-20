@@ -1,9 +1,10 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { ArrowLeft, Brain, ClipboardCopy, FileText, MessageSquareText, Paperclip, Radar, Send, Sparkles, X } from "lucide-react";
+import { ArrowLeft, Brain, ClipboardCopy, FileText, Kanban, MessageSquareText, Paperclip, Radar, Save, Send, Sparkles, X } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import { FunilGaia, type FunnelDraft } from "@/app/components/FunilGaia";
 import { agents, type AgentId, type GaiaAttachment, type GaiaMessage } from "@/lib/agents";
 import { hasSensitiveDataSignal, sensitiveDataWarning } from "@/lib/gaiaKnowledge";
 
@@ -56,6 +57,34 @@ const onboardingSteps = [
   },
 ];
 
+function funnelDraftFromDossier(content: string): FunnelDraft {
+  const cnpj = content.match(/\d{2}\.\d{3}\.\d{3}\/\d{4}-\d{2}/)?.[0] ?? "";
+  const tableLine = content
+    .split("\n")
+    .find((line) => /raz[aã]o social/i.test(line));
+  const tableCells = tableLine
+    ?.split("|")
+    .map((cell) => cell.replace(/\*\*/g, "").trim())
+    .filter(Boolean);
+  const companyFromTable = tableCells && tableCells.length > 1
+    ? tableCells[tableCells.findIndex((cell) => /raz[aã]o social/i.test(cell)) + 1]
+    : "";
+  const companyFromTitle = content
+    .split("\n")
+    .find((line) => /dossi[eê].*[-:]/i.test(line))
+    ?.replace(/^#+\s*/, "")
+    .split(/[-:]/)
+    .slice(1)
+    .join("-")
+    .trim();
+
+  return {
+    empresa: companyFromTable || companyFromTitle || "",
+    cnpj,
+    dossie: content,
+  };
+}
+
 export default function GaiaCopiloto() {
   const [hasEntered, setHasEntered] = useState(false);
   const [onboardingIndex, setOnboardingIndex] = useState(0);
@@ -66,6 +95,8 @@ export default function GaiaCopiloto() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
+  const [showFunnel, setShowFunnel] = useState(false);
+  const [funnelDraft, setFunnelDraft] = useState<FunnelDraft | null>(null);
   const streamRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -276,6 +307,11 @@ export default function GaiaCopiloto() {
     setActiveAgentId(null);
   }
 
+  function openFunnel(draft: FunnelDraft | null = null) {
+    setFunnelDraft(draft);
+    setShowFunnel(true);
+  }
+
   if (!hasEntered) {
     return (
       <main className="welcomeShell">
@@ -316,6 +352,10 @@ export default function GaiaCopiloto() {
     );
   }
 
+  if (showFunnel) {
+    return <FunilGaia draft={funnelDraft} onBack={() => setShowFunnel(false)} />;
+  }
+
   if (!activeAgentId) {
     return (
       <main className="agentHubShell">
@@ -331,6 +371,17 @@ export default function GaiaCopiloto() {
             <span>Cada agente abre uma conversa própria, com comandos prontos para o gerente sair com uma entrega utilizável.</span>
           </div>
         </header>
+
+        <section className="hubToolBand" aria-label="Ferramentas comerciais">
+          <div>
+            <Kanban size={23} />
+            <div>
+              <strong>Funil de Operações</strong>
+              <span>Acompanhe empresas, etapas e próximas ações.</span>
+            </div>
+          </div>
+          <button onClick={() => openFunnel()} type="button">Abrir funil</button>
+        </section>
 
         <section className="agentCards" aria-label="Agentes GAIA">
           {agents.map((item) => {
@@ -440,10 +491,18 @@ export default function GaiaCopiloto() {
               <article className="agentDocument" key={`${message.role}-${index}`}>
                 <div className="documentHeader">
                   <span>{agent.documentLabel}</span>
-                  <button onClick={() => void copyText(message.content, index)} type="button">
-                    <ClipboardCopy size={15} />
-                    {copiedIndex === index ? "Copiado" : "Copiar"}
-                  </button>
+                  <div className="documentActions">
+                    {agent.id === "radar" ? (
+                      <button onClick={() => openFunnel(funnelDraftFromDossier(message.content))} type="button">
+                        <Save size={15} />
+                        Salvar no Funil
+                      </button>
+                    ) : null}
+                    <button onClick={() => void copyText(message.content, index)} type="button">
+                      <ClipboardCopy size={15} />
+                      {copiedIndex === index ? "Copiado" : "Copiar"}
+                    </button>
+                  </div>
                 </div>
                 <div className="documentBody">
                   <ReactMarkdown
