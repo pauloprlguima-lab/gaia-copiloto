@@ -8,8 +8,10 @@ import {
   ChevronRight,
   Cloud,
   CloudOff,
+  FileSpreadsheet,
   Kanban,
   LayoutList,
+  ListPlus,
   LockKeyhole,
   Pencil,
   Plus,
@@ -17,6 +19,8 @@ import {
   Trash2,
   X,
 } from "lucide-react";
+import Papa from "papaparse";
+import { companiesFromRows, rowsFromPastedList, type ImportedCompany } from "@/lib/funilImport";
 
 const STORAGE_KEY = "gaia-funil-operacoes-v1";
 
@@ -83,6 +87,23 @@ function stageById(id: FunnelStage) {
   return funnelStages.find((stage) => stage.id === id) ?? funnelStages[0];
 }
 
+function spreadsheetCellText(value: unknown): string {
+  if (value == null) return "";
+  if (value instanceof Date) return value.toISOString().slice(0, 10);
+  if (typeof value === "string" || typeof value === "number" || typeof value === "boolean") return String(value);
+  if (typeof value !== "object") return "";
+
+  const cellValue = value as {
+    text?: string;
+    result?: unknown;
+    richText?: Array<{ text?: string }>;
+  };
+  if (cellValue.text) return cellValue.text;
+  if (cellValue.result != null) return spreadsheetCellText(cellValue.result);
+  if (Array.isArray(cellValue.richText)) return cellValue.richText.map((item) => item.text || "").join("");
+  return "";
+}
+
 export function FunilGaia({ draft, onBack }: { draft?: FunnelDraft | null; onBack: () => void }) {
   const [entries, setEntries] = useState<FunnelEntry[]>([]);
   const [form, setForm] = useState<EntryForm>(emptyForm);
@@ -96,6 +117,12 @@ export function FunilGaia({ draft, onBack }: { draft?: FunnelDraft | null; onBac
   const [pinInput, setPinInput] = useState("");
   const [cloudModalOpen, setCloudModalOpen] = useState(false);
   const [cloudMessage, setCloudMessage] = useState("");
+  const [importOpen, setImportOpen] = useState(false);
+  const [importText, setImportText] = useState("");
+  const [importCandidates, setImportCandidates] = useState<ImportedCompany[]>([]);
+  const [importMessage, setImportMessage] = useState("");
+  const [importFileName, setImportFileName] = useState("");
+  const [importBusy, setImportBusy] = useState(false);
 
   useEffect(() => {
     const localEntries = readEntries();
@@ -225,6 +252,103 @@ export function FunilGaia({ draft, onBack }: { draft?: FunnelDraft | null; onBac
     setCloudModalOpen(false);
   }
 
+  function closeImport() {
+    setImportOpen(false);
+    setImportText("");
+    setImportCandidates([]);
+    setImportMessage("");
+    setImportFileName("");
+    setImportBusy(false);
+  }
+
+  function prepareImport(companies: ImportedCompany[], source: string) {
+    setImportCandidates(companies);
+    setImportMessage(
+      companies.length
+        ? `${companies.length} empresa${companies.length === 1 ? "" : "s"} pronta${companies.length === 1 ? "" : "s"} para importar de ${source}.`
+        : "Nenhuma empresa válida foi encontrada.",
+    );
+  }
+
+  function reviewPastedList() {
+    prepareImport(companiesFromRows(rowsFromPastedList(importText)), "lista colada");
+  }
+
+  async function readImportFile(event: React.ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file) return;
+
+    setImportBusy(true);
+    setImportFileName(file.name);
+    setImportMessage("Lendo a planilha...");
+    try {
+      let rows: string[][] = [];
+      if (/\.xlsx$/i.test(file.name)) {
+        const ExcelJS = await import("exceljs");
+        const workbook = new ExcelJS.Workbook();
+        await workbook.xlsx.load((await file.arrayBuffer()) as never);
+        const worksheet = workbook.worksheets[0];
+        worksheet?.eachRow({ includeEmpty: false }, (row) => {
+          const values = Array.isArray(row.values) ? row.values.slice(1) : [];
+          rows.push(values.map(spreadsheetCellText));
+        });
+      } else {
+        const parsed = Papa.parse<string[]>(await file.text(), {
+          delimiter: "",
+          skipEmptyLines: "greedy",
+        });
+        rows = parsed.data.map((row) => row.map((value) => String(value ?? "")));
+      }
+      prepareImport(companiesFromRows(rows), file.name);
+    } catch (error) {
+      console.error(error);
+      setImportCandidates([]);
+      setImportMessage("Não foi possível ler este arquivo. Use .xlsx, .csv ou .txt.");
+    } finally {
+      setImportBusy(false);
+    }
+  }
+
+  function importCompanies() {
+    if (!importCandidates.length) return;
+    const now = new Date().toISOString();
+    const next = [...entries];
+    let added = 0;
+    let updated = 0;
+
+    for (const candidate of importCandidates) {
+      const cnpj = candidate.cnpj.replace(/\D/g, "");
+      const existingIndex = next.findIndex((entry) =>
+        (cnpj && entry.cnpj.replace(/\D/g, "") === cnpj)
+        || entry.empresa.toLocaleLowerCase("pt-BR") === candidate.empresa.toLocaleLowerCase("pt-BR"),
+      );
+      if (existingIndex >= 0) {
+        const previous = next[existingIndex];
+        next[existingIndex] = {
+          ...previous,
+          ...candidate,
+          id: previous.id,
+          criadoEm: previous.criadoEm,
+          atualizadoEm: now,
+        };
+        updated += 1;
+      } else {
+        next.push({
+          ...candidate,
+          id: crypto.randomUUID(),
+          criadoEm: now,
+          atualizadoEm: now,
+        });
+        added += 1;
+      }
+    }
+
+    commitEntries(next);
+    setCloudMessage(`${added} empresa${added === 1 ? " adicionada" : "s adicionadas"}${updated ? ` e ${updated} atualizada${updated === 1 ? "" : "s"}` : ""}.`);
+    closeImport();
+  }
+
   function saveEntry(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const now = new Date().toISOString();
@@ -332,6 +456,10 @@ export function FunilGaia({ draft, onBack }: { draft?: FunnelDraft | null; onBac
             {cloudState === "connected" ? <Cloud size={18} /> : <CloudOff size={18} />}
             {cloudState === "connected" ? "Nuvem conectada" : cloudState === "connecting" ? "Conectando" : "Conectar nuvem"}
           </button>
+          <button className="funnelImportButton" onClick={() => setImportOpen(true)} type="button">
+            <FileSpreadsheet size={18} />
+            Importar lista
+          </button>
           <button className="funnelPrimary" onClick={openNewEntry} type="button">
             <Plus size={18} />
             Nova empresa
@@ -417,6 +545,73 @@ export function FunilGaia({ draft, onBack }: { draft?: FunnelDraft | null; onBac
                 <button className="funnelPrimary" type="submit">{editingId ? "Salvar alterações" : "Adicionar ao funil"}</button>
               </footer>
             </form>
+          </section>
+        </div>
+      ) : null}
+
+      {importOpen ? (
+        <div className="funnelModalBackdrop" role="presentation" onMouseDown={(event) => event.target === event.currentTarget && closeImport()}>
+          <section aria-labelledby="import-form-title" aria-modal="true" className="funnelModal funnelImportModal" role="dialog">
+            <header>
+              <div>
+                <p className="eyebrow">Cadastro em lote</p>
+                <h2 id="import-form-title">Importar empresas</h2>
+              </div>
+              <button aria-label="Fechar importação" onClick={closeImport} title="Fechar" type="button"><X size={19} /></button>
+            </header>
+            <div className="funnelImportContent">
+              <div className="funnelImportChoice">
+                <FileSpreadsheet size={24} />
+                <div>
+                  <strong>Planilha pronta</strong>
+                  <span>Use .xlsx, .csv ou .txt. Reconhecemos Empresa, CNPJ, Etapa, Próxima ação, Data e Observações.</span>
+                </div>
+                <label className="funnelFileButton">
+                  Escolher arquivo
+                  <input accept=".xlsx,.csv,.txt" aria-label="Escolher planilha de empresas" onChange={(event) => void readImportFile(event)} type="file" />
+                </label>
+              </div>
+
+              <div className="funnelImportDivider"><span>ou</span></div>
+
+              <label className="funnelImportPaste">
+                <span><ListPlus size={18} /> Colar lista</span>
+                <textarea
+                  onChange={(event) => setImportText(event.target.value)}
+                  placeholder={"Uma empresa por linha. Exemplos:\n71.476.527/0001-35\nConstrutora Tenda;71.476.527/0001-35"}
+                  rows={7}
+                  value={importText}
+                />
+              </label>
+              <button className="funnelImportReview" disabled={!importText.trim() || importBusy} onClick={reviewPastedList} type="button">
+                Revisar lista colada
+              </button>
+
+              {importMessage ? (
+                <div className={`funnelImportStatus ${importCandidates.length ? "ready" : ""}`}>
+                  <strong>{importFileName || "Importação"}</strong>
+                  <span>{importMessage}</span>
+                </div>
+              ) : null}
+
+              {importCandidates.length ? (
+                <div className="funnelImportPreview">
+                  {importCandidates.slice(0, 5).map((company) => (
+                    <div key={`${company.cnpj}-${company.empresa}`}>
+                      <strong>{company.empresa}</strong>
+                      <span>{company.cnpj || "Sem CNPJ"}</span>
+                    </div>
+                  ))}
+                  {importCandidates.length > 5 ? <p>Mais {importCandidates.length - 5} empresas prontas para importar.</p> : null}
+                </div>
+              ) : null}
+            </div>
+            <footer className="funnelCloudFooter">
+              <button className="funnelCancel" onClick={closeImport} type="button">Cancelar</button>
+              <button className="funnelPrimary" disabled={!importCandidates.length || importBusy} onClick={importCompanies} type="button">
+                {importBusy ? "Lendo arquivo..." : `Adicionar ${importCandidates.length || ""} empresas`}
+              </button>
+            </footer>
           </section>
         </div>
       ) : null}

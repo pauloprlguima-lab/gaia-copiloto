@@ -92,6 +92,46 @@ export async function PUT(request: Request) {
   }
 }
 
+export async function PATCH(request: Request) {
+  if (!isFunnelAuthorized(request)) return unauthorized();
+  if (!isCloudFunnelConfigured()) return notConfigured();
+
+  try {
+    const body = (await request.json()) as { entries?: unknown[] };
+    if (!Array.isArray(body.entries) || body.entries.length === 0) {
+      return NextResponse.json({ error: "Envie ao menos uma empresa para importar." }, { status: 400 });
+    }
+    if (body.entries.length > 100) {
+      return NextResponse.json({ error: "Importe no máximo 100 empresas por vez." }, { status: 400 });
+    }
+
+    const next = await readFunnelEntries();
+    let created = 0;
+    let updated = 0;
+    for (const value of body.entries) {
+      const preliminary = normalizeFunnelEntry(value);
+      const existing = findExistingEntry(next, preliminary);
+      const entry = normalizeFunnelEntry(value, existing);
+      if (existing) {
+        const index = next.findIndex((item) => item.id === existing.id);
+        next[index] = entry;
+        updated += 1;
+      } else {
+        next.push(entry);
+        created += 1;
+      }
+    }
+
+    await writeFunnelEntries(next);
+    return NextResponse.json({ entries: next, total: next.length, created, updated, cloud: true });
+  } catch (error) {
+    if (error instanceof Error && error.message === "EMPRESA_REQUIRED") {
+      return NextResponse.json({ error: "Todas as linhas precisam ter o nome da empresa." }, { status: 400 });
+    }
+    return storageError(error);
+  }
+}
+
 export async function DELETE(request: Request) {
   if (!isFunnelAuthorized(request)) return unauthorized();
   if (!isCloudFunnelConfigured()) return notConfigured();
