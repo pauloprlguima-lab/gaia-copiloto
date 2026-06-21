@@ -1,8 +1,8 @@
 openapi: 3.1.0
 info:
-  title: GAIA Radar - Consulta Pública de CNPJ
-  version: 1.0.0
-  description: Consulta dados cadastrais públicos de uma empresa brasileira pelo CNPJ.
+  title: GAIA Radar - CNPJ e Funil Comercial
+  version: 2.0.0
+  description: Consulta dados cadastrais públicos e registra empresas no Funil GAIA.
 servers:
   - url: https://gaia-radar-api.vercel.app
 paths:
@@ -41,12 +41,157 @@ paths:
           description: CNPJ não encontrado.
         "429":
           description: Limite temporário da fonte pública atingido.
+  /api/funil:
+    get:
+      operationId: consultarFunilGaia
+      summary: Consulta empresas e próximas ações salvas no Funil GAIA.
+      description: Use quando o usuário pedir para ver o funil, localizar uma empresa, listar pendências ou consultar uma etapa comercial.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: busca
+          in: query
+          required: false
+          description: Nome, CNPJ ou termo relacionado à empresa.
+          schema:
+            type: string
+        - name: etapa
+          in: query
+          required: false
+          description: Etapa comercial a consultar.
+          schema:
+            type: string
+            enum: [prospectivo, contato, visita, analise, proposta, cliente]
+      responses:
+        "200":
+          description: Empresas encontradas no Funil GAIA.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FunilLista"
+        "401":
+          description: Chave da Ação ausente ou inválida.
+        "503":
+          description: Armazenamento em nuvem ainda não configurado.
+    post:
+      operationId: salvarEmpresaNoFunil
+      summary: Salva ou atualiza uma empresa no Funil GAIA.
+      description: Use somente quando o usuário pedir para salvar, registrar, atualizar etapa ou definir a próxima ação de uma empresa. Nunca salve dados financeiros sensíveis.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              properties:
+                id:
+                  type: string
+                  description: Identificador existente, quando estiver atualizando um registro consultado.
+                empresa:
+                  type: string
+                cnpj:
+                  type: string
+                etapa:
+                  type: string
+                  enum: [prospectivo, contato, visita, analise, proposta, cliente]
+                proximaAcao:
+                  type: string
+                dataProximaAcao:
+                  type: string
+                  description: Data no formato AAAA-MM-DD.
+                observacoes:
+                  type: string
+                dossie:
+                  type: string
+                  description: Resumo do dossiê com apenas dados públicos.
+              required:
+                - empresa
+      responses:
+        "200":
+          description: Empresa salva ou atualizada.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                properties:
+                  entry:
+                    $ref: "#/components/schemas/FunilEntry"
+                  created:
+                    type: boolean
+        "400":
+          description: Dados inválidos.
+        "401":
+          description: Chave da Ação ausente ou inválida.
+        "503":
+          description: Armazenamento em nuvem ainda não configurado.
+    delete:
+      operationId: excluirEmpresaDoFunil
+      summary: Exclui uma empresa do Funil GAIA.
+      description: Use apenas após o usuário pedir explicitamente a exclusão de uma empresa já consultada no funil.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Empresa excluída.
+        "401":
+          description: Chave da Ação ausente ou inválida.
+        "404":
+          description: Empresa não encontrada.
 components:
   securitySchemes:
     bearerAuth:
       type: http
       scheme: bearer
   schemas:
+    FunilEntry:
+      type: object
+      additionalProperties: false
+      properties:
+        id:
+          type: string
+        empresa:
+          type: string
+        cnpj:
+          type: string
+        etapa:
+          type: string
+          enum: [prospectivo, contato, visita, analise, proposta, cliente]
+        proximaAcao:
+          type: string
+        dataProximaAcao:
+          type: string
+        observacoes:
+          type: string
+        dossie:
+          type: string
+        criadoEm:
+          type: string
+        atualizadoEm:
+          type: string
+      required: [id, empresa, cnpj, etapa, proximaAcao, dataProximaAcao, observacoes, dossie, criadoEm, atualizadoEm]
+    FunilLista:
+      type: object
+      additionalProperties: false
+      properties:
+        entries:
+          type: array
+          items:
+            $ref: "#/components/schemas/FunilEntry"
+        total:
+          type: integer
+        cloud:
+          type: boolean
+      required: [entries, total, cloud]
     EmpresaPublica:
       type: object
       additionalProperties: false

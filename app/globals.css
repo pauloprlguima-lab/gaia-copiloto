@@ -1505,6 +1505,38 @@ button {
   padding: 0 0 20px;
 }
 
+.funnelHeaderActions {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+
+.funnelCloudButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 10px 13px;
+  background: #fff;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.funnelCloudButton.connected {
+  border-color: rgba(52, 124, 72, 0.32);
+  background: #edf7ef;
+  color: #347c48;
+}
+
+.funnelCloudButton.error {
+  border-color: rgba(154, 68, 36, 0.28);
+  background: var(--danger-bg);
+  color: var(--danger);
+}
+
 .funnelBrand {
   display: flex;
   align-items: center;
@@ -1592,6 +1624,22 @@ button {
   gap: 12px;
   max-width: 1500px;
   margin: 16px auto;
+}
+
+.funnelCloudNotice {
+  max-width: 1500px;
+  margin: -6px auto 14px;
+  border-left: 3px solid #307c75;
+  padding: 8px 11px;
+  background: rgba(48, 124, 117, 0.08);
+  color: #365e59;
+  font-size: 11px;
+}
+
+.funnelCloudNotice.error {
+  border-left-color: var(--danger);
+  background: var(--danger-bg);
+  color: var(--danger);
 }
 
 .funnelSearch {
@@ -1936,6 +1984,53 @@ button {
   margin-top: 20px;
 }
 
+.funnelCloudModal {
+  width: min(520px, 100%);
+}
+
+.funnelCloudContent {
+  padding: 22px;
+  color: #307c75;
+}
+
+.funnelCloudContent p {
+  margin: 12px 0 18px;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.funnelCloudContent label {
+  display: grid;
+  gap: 6px;
+  color: var(--text);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.funnelCloudContent input {
+  width: 100%;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  outline: 0;
+  padding: 11px;
+  background: var(--surface-2);
+  color: var(--text);
+}
+
+.funnelCloudContent input:focus {
+  border-color: #307c75;
+  box-shadow: 0 0 0 3px rgba(48, 124, 117, 0.12);
+}
+
+.funnelCloudFooter {
+  display: flex;
+  justify-content: flex-end;
+  gap: 9px;
+  border-top: 1px solid var(--line);
+  padding: 16px 22px 20px;
+}
+
 .funnelCancel {
   border: 1px solid var(--line);
   border-radius: 8px;
@@ -1992,6 +2087,15 @@ button {
   .funnelHeader > .funnelPrimary,
   .hubToolBand button {
     width: 100%;
+  }
+
+  .funnelHeaderActions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .funnelHeaderActions > button {
+    min-width: 0;
   }
 
   .funnelSummary {

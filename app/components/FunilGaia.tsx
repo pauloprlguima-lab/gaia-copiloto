@@ -6,8 +6,11 @@ import {
   Building2,
   CalendarDays,
   ChevronRight,
+  Cloud,
+  CloudOff,
   Kanban,
   LayoutList,
+  LockKeyhole,
   Pencil,
   Plus,
   Search,
@@ -48,6 +51,7 @@ type FunnelEntry = {
 };
 
 type EntryForm = Omit<FunnelEntry, "id" | "criadoEm" | "atualizadoEm">;
+type CloudState = "local" | "connecting" | "connected" | "error";
 
 const emptyForm: EntryForm = {
   empresa: "",
@@ -87,10 +91,18 @@ export function FunilGaia({ draft, onBack }: { draft?: FunnelDraft | null; onBac
   const [query, setQuery] = useState("");
   const [view, setView] = useState<"board" | "list">("board");
   const [loaded, setLoaded] = useState(false);
+  const [cloudState, setCloudState] = useState<CloudState>("local");
+  const [cloudPin, setCloudPin] = useState("");
+  const [pinInput, setPinInput] = useState("");
+  const [cloudModalOpen, setCloudModalOpen] = useState(false);
+  const [cloudMessage, setCloudMessage] = useState("");
 
   useEffect(() => {
-    setEntries(readEntries());
+    const localEntries = readEntries();
+    setEntries(localEntries);
     setLoaded(true);
+    const savedPin = window.sessionStorage.getItem("gaia-funil-pin");
+    if (savedPin) void connectCloud(savedPin, localEntries);
   }, []);
 
   useEffect(() => {
@@ -149,21 +161,85 @@ export function FunilGaia({ draft, onBack }: { draft?: FunnelDraft | null; onBac
     setForm(emptyForm);
   }
 
+  async function cloudRequest(pin: string, options?: RequestInit) {
+    const response = await fetch("/api/funil", {
+      ...options,
+      headers: {
+        "Content-Type": "application/json",
+        "X-GAIA-PIN": pin,
+        ...(options?.headers || {}),
+      },
+    });
+    const data = (await response.json()) as { entries?: FunnelEntry[]; error?: string };
+    if (!response.ok) throw new Error(data.error || "Não foi possível conectar ao Funil na nuvem.");
+    return data;
+  }
+
+  async function connectCloud(pin: string, localEntries = entries) {
+    setCloudState("connecting");
+    setCloudMessage("");
+    try {
+      const data = await cloudRequest(pin);
+      const remoteEntries = Array.isArray(data.entries) ? data.entries : [];
+      if (remoteEntries.length === 0 && localEntries.length > 0) {
+        await cloudRequest(pin, { method: "PUT", body: JSON.stringify({ entries: localEntries }) });
+        setEntries(localEntries);
+        setCloudMessage("Seus registros locais foram enviados para a nuvem.");
+      } else {
+        setEntries(remoteEntries);
+        setCloudMessage("Funil sincronizado com a nuvem.");
+      }
+      setCloudPin(pin);
+      setPinInput("");
+      setCloudState("connected");
+      setCloudModalOpen(false);
+      window.sessionStorage.setItem("gaia-funil-pin", pin);
+    } catch (error) {
+      setCloudState("error");
+      setCloudMessage(error instanceof Error ? error.message : "Não foi possível conectar à nuvem.");
+    }
+  }
+
+  async function syncCloud(nextEntries: FunnelEntry[]) {
+    if (cloudState !== "connected" || !cloudPin) return;
+    try {
+      await cloudRequest(cloudPin, { method: "PUT", body: JSON.stringify({ entries: nextEntries }) });
+      setCloudMessage("Alterações salvas na nuvem.");
+    } catch (error) {
+      setCloudState("error");
+      setCloudMessage(error instanceof Error ? error.message : "A alteração ficou salva apenas neste aparelho.");
+    }
+  }
+
+  function commitEntries(nextEntries: FunnelEntry[]) {
+    setEntries(nextEntries);
+    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(nextEntries));
+    void syncCloud(nextEntries);
+  }
+
+  function disconnectCloud() {
+    window.sessionStorage.removeItem("gaia-funil-pin");
+    setCloudPin("");
+    setCloudState("local");
+    setCloudMessage("Modo local: os dados ficam somente neste navegador.");
+    setCloudModalOpen(false);
+  }
+
   function saveEntry(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const now = new Date().toISOString();
 
     if (editingId) {
-      setEntries((current) =>
-        current.map((entry) =>
+      commitEntries(
+        entries.map((entry) =>
           entry.id === editingId
             ? { ...entry, ...form, empresa: form.empresa.trim(), atualizadoEm: now }
             : entry,
         ),
       );
     } else {
-      setEntries((current) => [
-        ...current,
+      commitEntries([
+        ...entries,
         {
           ...form,
           id: crypto.randomUUID(),
@@ -178,8 +254,8 @@ export function FunilGaia({ draft, onBack }: { draft?: FunnelDraft | null; onBac
   }
 
   function moveEntry(id: string, etapa: FunnelStage) {
-    setEntries((current) =>
-      current.map((entry) =>
+    commitEntries(
+      entries.map((entry) =>
         entry.id === id ? { ...entry, etapa, atualizadoEm: new Date().toISOString() } : entry,
       ),
     );
@@ -187,7 +263,7 @@ export function FunilGaia({ draft, onBack }: { draft?: FunnelDraft | null; onBac
 
   function deleteEntry(entry: FunnelEntry) {
     if (!window.confirm(`Excluir ${entry.empresa} do funil?`)) return;
-    setEntries((current) => current.filter((item) => item.id !== entry.id));
+    commitEntries(entries.filter((item) => item.id !== entry.id));
   }
 
   function renderEntry(entry: FunnelEntry) {
@@ -247,10 +323,20 @@ export function FunilGaia({ draft, onBack }: { draft?: FunnelDraft | null; onBac
             <span>Empresas, próximas ações e andamento em um só lugar.</span>
           </div>
         </div>
-        <button className="funnelPrimary" onClick={openNewEntry} type="button">
-          <Plus size={18} />
-          Nova empresa
-        </button>
+        <div className="funnelHeaderActions">
+          <button
+            className={`funnelCloudButton ${cloudState}`}
+            onClick={() => setCloudModalOpen(true)}
+            type="button"
+          >
+            {cloudState === "connected" ? <Cloud size={18} /> : <CloudOff size={18} />}
+            {cloudState === "connected" ? "Nuvem conectada" : cloudState === "connecting" ? "Conectando" : "Conectar nuvem"}
+          </button>
+          <button className="funnelPrimary" onClick={openNewEntry} type="button">
+            <Plus size={18} />
+            Nova empresa
+          </button>
+        </div>
       </header>
 
       <section className="funnelSummary" aria-label="Resumo do funil">
@@ -270,6 +356,8 @@ export function FunilGaia({ draft, onBack }: { draft?: FunnelDraft | null; onBac
           <button aria-pressed={view === "list"} className={view === "list" ? "active" : ""} onClick={() => setView("list")} title="Lista" type="button"><LayoutList size={17} /></button>
         </div>
       </section>
+
+      {cloudMessage ? <div className={`funnelCloudNotice ${cloudState}`}>{cloudMessage}</div> : null}
 
       {filteredEntries.length === 0 ? (
         <section className="funnelEmpty">
@@ -329,6 +417,32 @@ export function FunilGaia({ draft, onBack }: { draft?: FunnelDraft | null; onBac
                 <button className="funnelPrimary" type="submit">{editingId ? "Salvar alterações" : "Adicionar ao funil"}</button>
               </footer>
             </form>
+          </section>
+        </div>
+      ) : null}
+
+      {cloudModalOpen ? (
+        <div className="funnelModalBackdrop" role="presentation" onMouseDown={(event) => event.target === event.currentTarget && setCloudModalOpen(false)}>
+          <section aria-labelledby="cloud-form-title" aria-modal="true" className="funnelModal funnelCloudModal" role="dialog">
+            <header>
+              <div>
+                <p className="eyebrow">Sincronização segura</p>
+                <h2 id="cloud-form-title">Funil na nuvem</h2>
+              </div>
+              <button aria-label="Fechar conexão" onClick={() => setCloudModalOpen(false)} title="Fechar" type="button"><X size={19} /></button>
+            </header>
+            <div className="funnelCloudContent">
+              <LockKeyhole size={28} />
+              <p>Use o PIN privado do Método GAIA. Ele conecta este navegador ao mesmo funil usado no celular, notebook e GPT Radar.</p>
+              <label>PIN do Funil <input autoFocus onChange={(event) => setPinInput(event.target.value)} type="password" value={pinInput} /></label>
+              {cloudState === "error" && cloudMessage ? <div className="errorBox">{cloudMessage}</div> : null}
+            </div>
+            <footer className="funnelCloudFooter">
+              {cloudState === "connected" ? <button className="funnelCancel" onClick={disconnectCloud} type="button">Usar somente local</button> : null}
+              <button className="funnelPrimary" disabled={!pinInput.trim() || cloudState === "connecting"} onClick={() => void connectCloud(pinInput.trim())} type="button">
+                {cloudState === "connecting" ? "Conectando..." : "Conectar com PIN"}
+              </button>
+            </footer>
           </section>
         </div>
       ) : null}
