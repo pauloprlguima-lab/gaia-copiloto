@@ -1,4 +1,5 @@
-"use client";
+
+   "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { ArrowLeft, Brain, ClipboardCopy, FileText, Kanban, MessageSquareText, Paperclip, Radar, Save, Send, Sparkles, X } from "lucide-react";
@@ -97,6 +98,24 @@ export default function GaiaCopiloto() {
   const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
   const [showFunnel, setShowFunnel] = useState(false);
   const [funnelDraft, setFunnelDraft] = useState<FunnelDraft | null>(null);
+  const [validadorStatus, setValidadorStatus] = useState<"parado" | "processando" | "enviado" | "erro">("parado");
+
+  const processarComGaia = async () => {
+    setValidadorStatus("processando");
+    try {
+      const resposta = await fetch("https://prlguima.app.n8n.cloud/webhook/gaia-processar", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ origem: "copiloto", quando: new Date().toISOString() }),
+      });
+      if (!resposta.ok) {
+        throw new Error(`resposta ${resposta.status}`);
+      }
+      setValidadorStatus("enviado");
+    } catch {
+      setValidadorStatus("erro");
+    }
+  };
   const streamRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -381,6 +400,24 @@ export default function GaiaCopiloto() {
             </div>
           </div>
           <button onClick={() => openFunnel()} type="button">Abrir funil</button>
+        </section>
+
+        <section className="hubToolBand" aria-label="Validação de decisores">
+          <div>
+            <Radar size={23} />
+            <div>
+              <strong>Validação de Decisores</strong>
+              <span>
+                {validadorStatus === "parado" && "A GAIA valida decisores das empresas pendentes da planilha."}
+                {validadorStatus === "processando" && "Enviando para a GAIA…"}
+                {validadorStatus === "enviado" && "Recebido! A GAIA está trabalhando. Resultados na planilha em alguns minutos."}
+                {validadorStatus === "erro" && "Não consegui falar com a GAIA. Verifique a internet e tente novamente."}
+              </span>
+            </div>
+          </div>
+          <button onClick={processarComGaia} disabled={validadorStatus === "processando"} type="button">
+            Processar com a GAIA
+          </button>
         </section>
 
         <section className="agentCards" aria-label="Agentes GAIA">
