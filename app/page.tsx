@@ -1,5 +1,4 @@
-
-   "use client";
+"use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { ArrowLeft, Brain, ClipboardCopy, FileText, Kanban, MessageSquareText, Paperclip, Radar, Save, Send, Sparkles, X } from "lucide-react";
@@ -103,10 +102,8 @@ export default function GaiaCopiloto() {
   const processarComGaia = async () => {
     setValidadorStatus("processando");
     try {
-      const resposta = await fetch("https://prlguima.app.n8n.cloud/webhook/gaia-processar", {
+      const resposta = await fetch("/api/processar", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ origem: "copiloto", quando: new Date().toISOString() }),
       });
       if (!resposta.ok) {
         throw new Error(`resposta ${resposta.status}`);
