@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { ArrowLeft, Brain, ClipboardCopy, FileText, Kanban, MessageSquareText, Paperclip, Radar, Save, Send, Sparkles, X } from "lucide-react";
+import { ArrowLeft, Brain, ClipboardCopy,ClipboardPaste, FileText, Kanban, MessageSquareText, Paperclip, Radar, Save, Send, Sparkles, X } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { FunilGaia, type FunnelDraft } from "@/app/components/FunilGaia";
@@ -417,6 +417,18 @@ export default function GaiaCopiloto() {
           </button>
         </section>
 
+        <section className="hubToolBand" aria-label="Colar perfil">
+          <div>
+            <ClipboardPaste size={23} />
+            <div>
+              <strong>Colar Perfil</strong>
+              <span>Cole o perfil do Sales Navigator e a GAIA extrai os dados e alimenta a planilha sozinha.</span>
+            </div>
+          </div>
+          <button onClick={() => { window.location.href = "/colar"; }} type="button">
+            Abrir
+          </button>
+        </section>
         <section className="agentCards" aria-label="Agentes GAIA">
           {agents.map((item) => {
             const Icon = iconMap[item.id];
