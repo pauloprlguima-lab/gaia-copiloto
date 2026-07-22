@@ -97,18 +97,23 @@ export default function GaiaCopiloto() {
   const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
   const [showFunnel, setShowFunnel] = useState(false);
   const [funnelDraft, setFunnelDraft] = useState<FunnelDraft | null>(null);
-  const [validadorStatus, setValidadorStatus] = useState<"parado" | "processando" | "enviado" | "erro">("parado");
+const [validadorStatus, setValidadorStatus] = useState<"parado" | "processando" | "enviado" | "erro">("parado");
+  const [empresaBusca, setEmpresaBusca] = useState("");
+  
 
-  const processarComGaia = async () => {
+const processarComGaia = async () => {
     setValidadorStatus("processando");
     try {
       const resposta = await fetch("/api/processar", {
         method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ empresa: empresaBusca.trim() || undefined }),
       });
       if (!resposta.ok) {
         throw new Error(`resposta ${resposta.status}`);
       }
       setValidadorStatus("enviado");
+      setEmpresaBusca("");
     } catch {
       setValidadorStatus("erro");
     }
@@ -389,27 +394,40 @@ export default function GaiaCopiloto() {
         </header>
 
         <section className="hubToolBand" aria-label="Ferramentas comerciais">
-          <div>
-            <Kanban size={23} />
+          <div className="hubToolBandContent">
+            <div className="hubToolBandImage">
+              <img src="/images/agents/funil.png" alt="" />
+            </div>
+            <Kanban size={22} />
             <div>
               <strong>Funil de Operações</strong>
-              <span>Acompanhe empresas, etapas e próximas ações.</span>
+              <span>Acompanhe empresas, etapas e próximas ações num só painel, do primeiro contato até o fechamento.</span>
             </div>
           </div>
           <button onClick={() => openFunnel()} type="button">Abrir funil</button>
         </section>
 
         <section className="hubToolBand" aria-label="Validação de decisores">
-          <div>
-            <Radar size={23} />
+          <div className="hubToolBandContent">
+            <div className="hubToolBandImage">
+              <img src="/images/agents/lupa.png" alt="" />
+            </div>
+            <Radar size={22} />
             <div>
               <strong>Validação de Decisores</strong>
               <span>
-                {validadorStatus === "parado" && "A GAIA valida decisores das empresas pendentes da planilha."}
+                {validadorStatus === "parado" && "Digite o nome de uma empresa ou CNPJ para processar direto, ou deixe em branco para a GAIA seguir a fila de pendentes."}
                 {validadorStatus === "processando" && "Enviando para a GAIA…"}
                 {validadorStatus === "enviado" && "Recebido! A GAIA está trabalhando. Resultados na planilha em alguns minutos."}
                 {validadorStatus === "erro" && "Não consegui falar com a GAIA. Verifique a internet e tente novamente."}
               </span>
+              <input
+                className="hubToolBandInput"
+                onChange={(event) => setEmpresaBusca(event.target.value)}
+                placeholder="Nome da empresa ou CNPJ (opcional)"
+                type="text"
+                value={empresaBusca}
+              />
             </div>
           </div>
           <button onClick={processarComGaia} disabled={validadorStatus === "processando"} type="button">
@@ -418,11 +436,14 @@ export default function GaiaCopiloto() {
         </section>
 
         <section className="hubToolBand" aria-label="Colar perfil">
-          <div>
-            <ClipboardPaste size={23} />
+          <div className="hubToolBandContent">
+            <div className="hubToolBandImage">
+              <img src="/images/agents/fluxo.png" alt="" />
+            </div>
+            <ClipboardPaste size={22} />
             <div>
               <strong>Colar Perfil</strong>
-              <span>Cole o perfil do Sales Navigator e a GAIA extrai os dados e alimenta a planilha sozinha.</span>
+              <span>Cole o perfil do Sales Navigator e a GAIA extrai os dados e alimenta a planilha sozinha, sem digitação manual.</span>
             </div>
           </div>
           <button onClick={() => { window.location.href = "/colar"; }} type="button">
