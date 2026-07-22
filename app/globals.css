@@ -1444,6 +1444,42 @@ button {
   color: var(--brass-2);
 }
 
+.hubToolBandImage {
+  flex-shrink: 0;
+  width: 56px;
+  height: 56px;
+  overflow: hidden;
+  border-radius: 8px;
+  background: var(--ink);
+}
+
+.hubToolBandImage img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center 15%;
+}
+
+.hubToolBandInput {
+  margin-top: 8px;
+  width: 100%;
+  max-width: 320px;
+  border: 1px solid rgba(198, 162, 90, 0.35);
+  border-radius: 6px;
+  padding: 8px 10px;
+  background: rgba(255, 255, 255, 0.04);
+  color: #fff;
+  font-size: 12px;
+}
+
+.hubToolBandInput::placeholder {
+  color: #7f9089;
+}
+
+.hubToolBandInput:focus {
+  outline: none;
+  border-color: var(--brass);
+}
 .hubToolBand strong,
 .hubToolBand span {
   display: block;
