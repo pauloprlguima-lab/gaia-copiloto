@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 
-export async function POST() {
+export async function POST(request: Request) {
   const token = process.env.GAIA_WEBHOOK_TOKEN;
 
   if (!token) {
@@ -10,6 +10,16 @@ export async function POST() {
     );
   }
 
+  let empresa: string | undefined;
+  try {
+    const body = await request.json();
+    if (typeof body?.empresa === "string" && body.empresa.trim()) {
+      empresa = body.empresa.trim();
+    }
+  } catch {
+    empresa = undefined;
+  }
+
   try {
     const resposta = await fetch("https://prlguima.app.n8n.cloud/webhook/gaia-processar", {
       method: "POST",
@@ -17,7 +27,7 @@ export async function POST() {
         "Content-Type": "application/json",
         "x-gaia-token": token,
       },
-      body: JSON.stringify({ origem: "copiloto", quando: new Date().toISOString() }),
+      body: JSON.stringify({ origem: "copiloto", quando: new Date().toISOString(), empresa }),
       cache: "no-store",
     });
 
