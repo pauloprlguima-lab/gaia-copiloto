@@ -393,62 +393,58 @@ const processarComGaia = async () => {
           </div>
         </header>
 
-        <section className="hubToolBand" aria-label="Ferramentas comerciais">
-          <div className="hubToolBandContent">
-            <div className="hubToolBandImage">
+        <section className="hubToolCards" aria-label="Ferramentas comerciais">
+          <article className="hubToolCard">
+            <div className="hubToolCardImage">
               <img src="/images/agents/funil.png" alt="" />
             </div>
-            <Kanban size={22} />
-            <div>
-              <strong>Funil de Operações</strong>
-              <span>Acompanhe empresas, etapas e próximas ações num só painel, do primeiro contato até o fechamento.</span>
+            <div className="hubToolCardTitle">
+              <Kanban size={22} />
+              <h2>Funil de Operações</h2>
             </div>
-          </div>
-          <button onClick={() => openFunnel()} type="button">Abrir funil</button>
-        </section>
+            <p>Acompanhe empresas, etapas e próximas ações num só painel, do primeiro contato até o fechamento.</p>
+            <button onClick={() => openFunnel()} type="button">Abrir funil</button>
+          </article>
 
-        <section className="hubToolBand" aria-label="Validação de decisores">
-          <div className="hubToolBandContent">
-            <div className="hubToolBandImage">
+          <article className="hubToolCard">
+            <div className="hubToolCardImage">
               <img src="/images/agents/lupa.png" alt="" />
             </div>
-            <Radar size={22} />
-            <div>
-              <strong>Validação de Decisores</strong>
-              <span>
-                {validadorStatus === "parado" && "Digite o nome de uma empresa ou CNPJ para processar direto, ou deixe em branco para a GAIA seguir a fila de pendentes."}
-                {validadorStatus === "processando" && "Enviando para a GAIA…"}
-                {validadorStatus === "enviado" && "Recebido! A GAIA está trabalhando. Resultados na planilha em alguns minutos."}
-                {validadorStatus === "erro" && "Não consegui falar com a GAIA. Verifique a internet e tente novamente."}
-              </span>
-              <input
-                className="hubToolBandInput"
-                onChange={(event) => setEmpresaBusca(event.target.value)}
-                placeholder="Nome da empresa ou CNPJ (opcional)"
-                type="text"
-                value={empresaBusca}
-              />
+            <div className="hubToolCardTitle">
+              <Radar size={22} />
+              <h2>Validação de Decisores</h2>
             </div>
-          </div>
-          <button onClick={processarComGaia} disabled={validadorStatus === "processando"} type="button">
-            Processar com a GAIA
-          </button>
-        </section>
+            <p>
+              {validadorStatus === "parado" && "Digite o nome de uma empresa ou CNPJ para processar direto, ou deixe em branco para a GAIA seguir a fila de pendentes."}
+              {validadorStatus === "processando" && "Enviando para a GAIA…"}
+              {validadorStatus === "enviado" && "Recebido! A GAIA está trabalhando. Resultados na planilha em alguns minutos."}
+              {validadorStatus === "erro" && "Não consegui falar com a GAIA. Verifique a internet e tente novamente."}
+            </p>
+            <input
+              className="hubToolCardInput"
+              onChange={(event) => setEmpresaBusca(event.target.value)}
+              placeholder="Nome da empresa ou CNPJ (opcional)"
+              type="text"
+              value={empresaBusca}
+            />
+            <button onClick={processarComGaia} disabled={validadorStatus === "processando"} type="button">
+              Processar com a GAIA
+            </button>
+          </article>
 
-        <section className="hubToolBand" aria-label="Colar perfil">
-          <div className="hubToolBandContent">
-            <div className="hubToolBandImage">
+          <article className="hubToolCard">
+            <div className="hubToolCardImage">
               <img src="/images/agents/fluxo.png" alt="" />
             </div>
-            <ClipboardPaste size={22} />
-            <div>
-              <strong>Colar Perfil</strong>
-              <span>Cole o perfil do Sales Navigator e a GAIA extrai os dados e alimenta a planilha sozinha, sem digitação manual.</span>
+            <div className="hubToolCardTitle">
+              <ClipboardPaste size={22} />
+              <h2>Colar Perfil</h2>
             </div>
-          </div>
-          <button onClick={() => { window.location.href = "/colar"; }} type="button">
-            Abrir
-          </button>
+            <p>Cole o perfil do Sales Navigator e a GAIA extrai os dados e alimenta a planilha sozinha, sem digitação manual.</p>
+            <button onClick={() => { window.location.href = "/colar"; }} type="button">
+              Abrir
+            </button>
+          </article>
         </section>
         <section className="agentCards" aria-label="Agentes GAIA">
           {agents.map((item) => {
